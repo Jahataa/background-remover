@@ -34,6 +34,12 @@ wheels/
 *.swp
 *.swo
 
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+
 # Image Resources
 img/
 bgone-img/
