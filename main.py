@@ -5,9 +5,8 @@ import glob
 import requests
 from dotenv import load_dotenv
 from pathlib import Path
-from PIL import Image
 from collections import Counter
-from PIL import Image
+from PIL import Image, ImageOps
 
 # Load environment variables from .env file
 load_dotenv()
@@ -121,6 +120,58 @@ def get_background_color_from_corner(image_path):
 if not api_key or not api_secret:
     raise ValueError("Please set VECTORIZER_API_KEY and VECTORIZER_SECRET in your .env file")
 
+
+# Prompt user for output dimensions
+print("\n" + "="*60)
+print("🖼️  OUTPUT SIZE CONFIGURATION")
+print("="*60)
+print("Please enter the desired output dimensions:")
+print("(Press Enter to use defaults: 4500x5400)")
+
+output_width = input("\n📏 Enter output width (px): ").strip()
+output_height = input("📏 Enter output height (px): ").strip()
+
+# Use defaults if user doesn't provide values
+if not output_width:
+    output_width = "4500"
+    print(f"   ℹ️  Using default width: {output_width}px")
+else:
+    print(f"   ✓ Width set to: {output_width}px")
+
+if not output_height:
+    output_height = "5400"
+    print(f"   ℹ️  Using default height: {output_height}px")
+else:
+    print(f"   ✓ Height set to: {output_height}px")
+
+print("="*60)
+
+def add_background_bottom(image_path, color, width, height):
+    """Add a background color to the bottom of the image"""
+
+    target_size = (width, height)
+    image_name = Path(image_path).stem
+    image = Image.open(image_path)
+    
+    padded = ImageOps.pad(
+        image,
+        target_size,
+        color=color,
+        centering=(0.5, 0.05),  # x=0.5 → center horizontally, y=0.05 → 5% from top
+    )
+
+    return padded.save(f"./img/{image_name}.png")
+img_patterns = ['./imgFix/*.jpg', './imgFix/*.jpeg', './imgFix/*.JPG', './imgFix/*.JPEG', './imgFix/*.png', './imgFix/*.PNG'] 
+
+files = []
+
+for img in img_patterns:
+    files.extend(glob.glob(img))
+    for file in files:
+        corner_color = get_most_common_corner_color(file)
+        print(f"Adding background to {file}")
+        add_background_bottom(file, corner_color, 4500, 5400)
+
 # Find all JPEG files in the img directory
 jpeg_patterns = ['./img/*.jpg', './img/*.jpeg', './img/*.JPG', './img/*.JPEG', './img/*.png', './img/*.PNG']
 image_files = []
@@ -173,7 +224,9 @@ for image_path in image_files:
                     
                     # Output format options
                     'output.file_format': 'png',  # Fixed parameter name
-                    
+                    'output.size.width': output_width,    # User-specified width
+                    'output.size.height': output_height,   # User-specified height
+
                     # Optional: Reduce small artifacts
                     'processing.shapes.min_area_px': '1.0',
                     
