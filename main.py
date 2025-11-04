@@ -146,7 +146,32 @@ else:
 
 print("="*60)
 
-def add_background_bottom(image_path, color, width, height):
+# Prompt user for padding preference
+print("\n" + "="*60)
+print("🎨 BACKGROUND PADDING CONFIGURATION")
+print("="*60)
+print("Do you want to add background padding to images before processing?")
+print("(This adds a colored background to match corner colors)")
+print()
+print("Options:")
+print("  1. Yes - Add background padding")
+print("  2. No - Skip padding (process original images)")
+
+padding_choice = input("\n👉 Enter your choice (1 or 2): ").strip()
+
+if padding_choice == "1":
+    use_padding = True
+    print("   ✓ Background padding ENABLED")
+elif padding_choice == "2":
+    use_padding = False
+    print("   ✓ Background padding DISABLED")
+else:
+    use_padding = True
+    print(f"   ℹ️  Invalid choice '{padding_choice}', defaulting to YES (padding enabled)")
+
+print("="*60)
+
+def add_background_bottom(image_path: str, color: tuple, width: int, height: int) -> None:
     """Add a background color to the bottom of the image"""
 
     target_size = (width, height)
@@ -157,7 +182,7 @@ def add_background_bottom(image_path, color, width, height):
         image,
         target_size,
         color=color,
-        centering=(0.5, 0.05),  # x=0.5 → center horizontally, y=0.05 → 5% from top
+        centering=(0.5, 0.01),  # x=0.5 → center horizontally, y=0.01 → 1% from top
     )
 
     return padded.save(f"./img/{image_name}.png")
@@ -165,24 +190,53 @@ img_patterns = ['./imgFix/*.jpg', './imgFix/*.jpeg', './imgFix/*.JPG', './imgFix
 
 files = []
 
-for img in img_patterns:
-    files.extend(glob.glob(img))
-    for file in files:
-        corner_color = get_most_common_corner_color(file)
-        print(f"Adding background to {file}")
-        add_background_bottom(file, corner_color, 4500, 5400)
+if use_padding:
+    print(f"\n{'='*60}")
+    print("🎨 APPLYING BACKGROUND PADDING")
+    print(f"{'='*60}")
+    for img in img_patterns:
+        files.extend(glob.glob(img))
+    
+    if not files:
+        print("❌ No images found in ./imgFix/ directory for padding")
+    else:
+        print(f"📁 Found {len(files)} image(s) to pad:")
+        for file in files:
+            print(f"   - {file}")
+        
+        for file in files:
+            print(f"\n{'─'*40}")
+            print(f"🖼️  Processing: {file}")
+            corner_color = get_most_common_corner_color(file)
+            print(f"  ➕ Adding background padding...")
+            add_background_bottom(file, corner_color, int(output_width), int(output_height))
+            print(f"  ✅ Padding applied!")
+    print(f"{'='*60}\n")
+else:
+    print(f"\n{'='*60}")
+    print("⏭️  SKIPPING BACKGROUND PADDING")
+    print(f"{'='*60}\n")
 
-# Find all JPEG files in the img directory
-jpeg_patterns = ['./img/*.jpg', './img/*.jpeg', './img/*.JPG', './img/*.JPEG', './img/*.png', './img/*.PNG']
+# Choose source directory based on padding choice
+if use_padding:
+    # If padding was applied, use the ./img directory (padded images)
+    source_patterns = ['./img/*.jpg', './img/*.jpeg', './img/*.JPG', './img/*.JPEG', './img/*.png', './img/*.PNG']
+    source_dir = "./img/"
+else:
+    # If padding was skipped, use the ./imgFix directory (original images)
+    source_patterns = ['./imgFix/*.jpg', './imgFix/*.jpeg', './imgFix/*.JPG', './imgFix/*.JPEG', './imgFix/*.png', './imgFix/*.PNG']
+    source_dir = "./imgFix/"
+
+# Find all image files in the chosen source directory
 image_files = []
-for pattern in jpeg_patterns:
+for pattern in source_patterns:
     image_files.extend(glob.glob(pattern))
 
 if not image_files:
-    print("❌ No JPEG images found in ./img/ directory")
+    print(f"❌ No images found in {source_dir} directory")
     exit(1)
 
-print(f"📁 Found {len(image_files)} JPEG image(s) to process:")
+print(f"📁 Found {len(image_files)} image(s) to process from {source_dir}:")
 for img in image_files:
     print(f"   - {img}")
 
